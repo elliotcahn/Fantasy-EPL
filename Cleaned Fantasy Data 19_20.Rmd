@@ -1,0 +1,46 @@
+---
+title: "Fantasy Soccer Data Frame Code"
+author: "Elliot Cahn"
+date: "10/21/2019"
+output: pdf_document
+---
+
+```{r}
+mypacks <- c("tidyverse", "knitr", "stringr","RCurl")  # what packages are needed?
+
+packs <- installed.packages()   # find installed package list
+install.me <- mypacks[!(mypacks %in% packs[,"Package"])]  #what needs to be installed?
+if (length(install.me) >= 1) install.packages(install.me, repos = "http://cran.us.r-project.org")   # install (if needed)
+lapply(mypacks, library, character.only=TRUE)  # load all packages
+```
+
+```{r}
+'%ni%' <- Negate('%in%')
+players_data <- getURL("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2019-20/cleaned_players.csv")
+players <- read.csv(text = players_data)
+pos_data <- getURL("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2019-20/players_raw.csv")
+pos <- read.csv(text = pos_data) %>% select(first_name, second_name, points_per_game, position = element_type, web_name)
+```
+
+```{r}
+"Code below combines player stats with their position and points per game information.
+It also estimates the number of games played by each player (which is not given) and
+gives fantasy points per pound spent on each player, which is calculated by taking
+the points per game per pound and multiplying that by the number of games in a season."
+
+position <- inner_join(players, pos) %>%
+ mutate(game_guess = round(total_points/points_per_game)) %>% 
+ filter(points_per_game != 0, minutes <= game_guess*90, game_guess > 0) %>% 
+ mutate(points_per_pound_std = (38*total_points/game_guess)/now_cost,
+   bps_per_pound = (bps/game_guess)*38/now_cost,
+   full_name = paste0(first_name, " ", second_name),
+   web_name_adj = word(web_name,-1)) %>%
+ filter(points_per_game != 0, minutes <= game_guess*90) %>% 
+ select(full_name, position, now_cost, points_per_game, points_per_pound_std, game_guess,
+        bonus, bps, bps_per_pound, total_points, minutes,
+        first_name, second_name, web_name, web_name_adj,
+        goals_scored, assists, clean_sheets, red_cards, yellow_cards)
+
+#write.csv(position, "~/Desktop/Fantasy Sports/FPL_players_GW8.csv")
+#update csv each gameweek
+```
