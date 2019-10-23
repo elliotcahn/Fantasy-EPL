@@ -29,7 +29,8 @@ gives fantasy points per pound spent on each player, which is calculated by taki
 the points per game per pound and multiplying that by the number of games in a season."
 
 position <- inner_join(players, pos) %>%
- mutate(game_guess = round(total_points/points_per_game)) %>% 
+ mutate(now_cost = now_cost/10, 
+        game_guess = round(total_points/points_per_game)) %>% 
  filter(points_per_game != 0, minutes <= game_guess*90, game_guess > 0) %>% 
  mutate(points_per_pound_std = (38*total_points/game_guess)/now_cost,
    bps_per_pound = (bps/game_guess)*38/now_cost,
